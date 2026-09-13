@@ -2,8 +2,8 @@ class AppConstants {
   AppConstants._();
 
   static const appName = '西邮课表';
-  static const eyebrow = 'XUPT / App';
-  static const sessionCookieName = 'xupt_panel_session';
+  static const badgeAsset = 'assets/images/xupt_badge.png';
+  static const prefsDisclaimerAcked = 'disclaimer_acked';
 
   /// Android 模拟器访问宿主机用 10.0.2.2；真机请改成电脑局域网 IP。
   static const defaultBaseUrl = 'http://10.0.2.2:8080';

@@ -13,6 +13,7 @@ class LoginPage extends GetView<AuthController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF6F5F1),
       body: SafeArea(
         child: Obx(() {
           if (controller.inMfa.value) {
@@ -25,8 +26,8 @@ class LoginPage extends GetView<AuthController> {
   }
 }
 
-class _BrandHeader extends StatelessWidget {
-  const _BrandHeader({required this.title, required this.subtitle});
+class _BrandMark extends StatelessWidget {
+  const _BrandMark({required this.title, required this.subtitle});
 
   final String title;
   final String subtitle;
@@ -34,41 +35,74 @@ class _BrandHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: AppTheme.accentSoft,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.school_outlined, color: AppTheme.accent, size: 20),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              AppConstants.eyebrow,
-              style: const TextStyle(
-                color: AppTheme.muted,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.4,
-              ),
-            ),
-          ],
+        Image.asset(
+          AppConstants.badgeAsset,
+          width: 96,
+          height: 96,
+          filterQuality: FilterQuality.high,
         ),
         const SizedBox(height: 18),
         Text(
           title,
-          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: AppTheme.ink),
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.w800,
+            color: AppTheme.ink,
+          ),
         ),
         const SizedBox(height: 8),
         Text(
           subtitle,
-          style: const TextStyle(fontSize: 14, height: 1.5, color: AppTheme.muted),
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 14,
+            height: 1.5,
+            color: AppTheme.muted,
+          ),
         ),
+      ],
+    );
+  }
+}
+
+class _CenteredShell extends StatelessWidget {
+  const _CenteredShell({
+    required this.child,
+    this.footer,
+  });
+
+  final Widget child;
+  final Widget? footer;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(28, 24, 28, 16),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight - 16),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 360),
+                      child: child,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        if (footer != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(28, 0, 28, 20),
+            child: footer,
+          ),
       ],
     );
   }
@@ -81,14 +115,19 @@ class _PasswordForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 36, 20, 28),
+    return _CenteredShell(
+      footer: const Text(
+        '密码仅用于本次登录请求，不会保存。',
+        textAlign: TextAlign.center,
+        style: TextStyle(fontSize: 12, height: 1.4, color: AppTheme.faint),
+      ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _BrandHeader(
-            title: '登录课表',
-            subtitle: '使用学校统一身份认证账号登录。密码仅用于本次登录请求，不会保存。',
+          const _BrandMark(
+            title: '西邮课表',
+            subtitle: '使用学校统一身份认证账号登录',
           ),
           const SizedBox(height: 28),
           TextField(
@@ -130,9 +169,14 @@ class _MfaForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 36, 20, 28),
+    return _CenteredShell(
+      footer: const Text(
+        '验证码仅用于完成本次登录。',
+        textAlign: TextAlign.center,
+        style: TextStyle(fontSize: 12, height: 1.4, color: AppTheme.faint),
+      ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Obx(() {
@@ -140,10 +184,10 @@ class _MfaForm extends StatelessWidget {
                 .map((item) => item.label)
                 .where((label) => label.isNotEmpty)
                 .join(' / ');
-            return _BrandHeader(
+            return _BrandMark(
               title: '二次认证',
               subtitle:
-                  '检测到异常登录风险，请完成二次认证后继续。\n账号 ${controller.mfaUsername.value} · 可用方式：${methods.isEmpty ? '手机验证码' : methods}',
+                  '账号 ${controller.mfaUsername.value}\n可用方式：${methods.isEmpty ? '手机验证码' : methods}',
             );
           }),
           const SizedBox(height: 28),
@@ -221,6 +265,7 @@ class _Banner extends StatelessWidget {
       ),
       child: Text(
         message,
+        textAlign: TextAlign.center,
         style: TextStyle(color: color, fontSize: 13, height: 1.4),
       ),
     );
