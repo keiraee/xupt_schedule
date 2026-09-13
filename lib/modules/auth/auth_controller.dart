@@ -43,7 +43,7 @@ class AuthController extends GetxController {
     final user = username.value.trim();
     final pass = password.value;
     if (user.isEmpty || pass.isEmpty) {
-      error.value = '请输入用户名和密码。';
+      error.value = '请输入学号和密码。';
       return;
     }
     loading.value = true;
