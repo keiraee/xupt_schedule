@@ -1,0 +1,27 @@
+name: xupt_schedule_app
+description: XUPT graduate schedule Android client. Direct SSO login, no panel backend.
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  get: ^4.7.2
+  shared_preferences: ^2.5.3
+  intl: ^0.20.2
+  pointycastle: ^3.9.1
+  html: ^0.15.5
+  sqflite: ^2.4.2
+  path: ^1.9.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
