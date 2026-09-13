@@ -16,8 +16,8 @@ Future<void> main() async {
   Get.put<SharedPreferences>(prefs, permanent: true);
 
   final session = SchoolSession();
-  Get.put<SchoolSession>(session, permanent: true);
   await session.restore();
+  Get.put<SchoolSession>(session, permanent: true);
 
   final loggedIn = session.studentId.isNotEmpty && session.client != null;
 

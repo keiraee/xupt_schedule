@@ -35,10 +35,10 @@ class AppConstants {
     '11',
   ];
 
+  /// 与研究生院课表一致：上午含中午1，下午从中午2起。
   static const sectionBreaks = <int, String>{
     0: '上午',
-    4: '中午',
-    6: '下午',
+    5: '下午',
     10: '晚上',
   };
 

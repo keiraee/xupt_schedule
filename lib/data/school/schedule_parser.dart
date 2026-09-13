@@ -95,7 +95,7 @@ List<List<_Cell>> _readTable(dom.Element? table) {
       final tag = cell.localName?.toLowerCase() ?? '';
       if (tag != 'td' && tag != 'th') continue;
       cells.add(_Cell(
-        cell.text.replaceAll('\xa0', ' ').trim(),
+        _cellText(cell),
         int.tryParse(cell.attributes['rowspan'] ?? '1') ?? 1,
         int.tryParse(cell.attributes['colspan'] ?? '1') ?? 1,
       ));
@@ -103,6 +103,28 @@ List<List<_Cell>> _readTable(dom.Element? table) {
     if (cells.isNotEmpty) rows.add(cells);
   }
   return rows;
+}
+
+String _cellText(dom.Element cell) {
+  final buffer = StringBuffer();
+  void walk(dom.Node node) {
+    if (node is dom.Text) {
+      buffer.write(node.text);
+      return;
+    }
+    if (node is! dom.Element) return;
+    final tag = node.localName?.toLowerCase() ?? '';
+    if (tag == 'br') {
+      buffer.write('\n');
+      return;
+    }
+    for (final child in node.nodes) {
+      walk(child);
+    }
+  }
+
+  walk(cell);
+  return buffer.toString().replaceAll('\xa0', ' ').trim();
 }
 
 List<List<(int, _Cell)>> _positionRows(List<List<_Cell>> rows) {

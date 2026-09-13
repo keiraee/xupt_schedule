@@ -5,7 +5,7 @@ import '../../../core/constants.dart';
 import '../../../core/schedule_utils.dart';
 import '../../../data/school/school_client.dart';
 
-/// 周课表：宽度撑满、高度按剩余空间均分，一屏显示。
+/// 周课表：宽度撑满、高度按剩余空间均分，连排课跨行叠在格子上。
 class WeekTimetable extends StatelessWidget {
   const WeekTimetable({
     super.key,
@@ -19,12 +19,12 @@ class WeekTimetable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
+    final breakCount = AppConstants.sectionBreaks.length;
     final budgetH = media.size.height -
         media.padding.top -
         media.padding.bottom -
         190;
-    final headerH = 36.0;
-    const breakCount = 4;
+    const headerH = 36.0;
     const breakH = 15.0;
     final rowH = ((budgetH - headerH - breakCount * breakH) /
             AppConstants.periods.length)
@@ -66,10 +66,25 @@ class _Grid extends StatelessWidget {
   final double rowH;
   final double breakH;
 
+  static const _periodW = 44.0;
+
+  double _periodTop(int p) {
+    var y = headerH;
+    for (var i = 0; i <= p; i++) {
+      if (AppConstants.sectionBreaks.containsKey(i)) y += breakH;
+      if (i < p) y += rowH;
+    }
+    return y;
+  }
+
+  double _spanHeight(int start, int end) {
+    return _periodTop(end) + rowH - _periodTop(start);
+  }
+
   @override
   Widget build(BuildContext context) {
     final today = DateTime.now();
-    final children = <Widget>[
+    final rows = <Widget>[
       SizedBox(
         height: headerH,
         child: Row(
@@ -91,7 +106,7 @@ class _Grid extends StatelessWidget {
     for (var p = 0; p < AppConstants.periods.length; p++) {
       final section = AppConstants.sectionBreaks[p];
       if (section != null) {
-        children.add(
+        rows.add(
           Container(
             height: breakH,
             color: AppTheme.soft,
@@ -109,18 +124,56 @@ class _Grid extends StatelessWidget {
           ),
         );
       }
-      children.add(
+      rows.add(
         _PeriodRow(
           p: p,
           dates: dates,
-          eventsForDate: eventsForDate,
           rowH: rowH,
           today: today,
         ),
       );
     }
 
-    return Column(mainAxisSize: MainAxisSize.min, children: children);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final dayW = (constraints.maxWidth - _periodW) / 7;
+        final cards = <Widget>[];
+        for (var d = 0; d < 7; d++) {
+          final events = eventsForDate(dates[d]);
+          final groups = <int, List<ScheduleEvent>>{};
+          for (final event in events) {
+            final start = periodRange(event.period).start;
+            groups.putIfAbsent(start, () => []).add(event);
+          }
+          for (final started in groups.values) {
+            for (var i = 0; i < started.length; i++) {
+              final event = started[i];
+              final range = periodRange(event.period);
+              final splitW = dayW / started.length;
+              cards.add(
+                Positioned(
+                  left: _periodW + d * dayW + i * splitW + 1.5,
+                  top: _periodTop(range.start) + 1.5,
+                  width: splitW - 3,
+                  height: _spanHeight(range.start, range.end) - 3,
+                  child: _CourseCard(
+                    event: event,
+                    isToday: sameDate(dates[d], today),
+                  ),
+                ),
+              );
+            }
+          }
+        }
+
+        return Stack(
+          children: [
+            Column(mainAxisSize: MainAxisSize.min, children: rows),
+            ...cards,
+          ],
+        );
+      },
+    );
   }
 }
 
@@ -196,14 +249,12 @@ class _PeriodRow extends StatelessWidget {
   const _PeriodRow({
     required this.p,
     required this.dates,
-    required this.eventsForDate,
     required this.rowH,
     required this.today,
   });
 
   final int p;
   final List<DateTime> dates;
-  final List<ScheduleEvent> Function(DateTime date) eventsForDate;
   final double rowH;
   final DateTime today;
 
@@ -212,19 +263,6 @@ class _PeriodRow extends StatelessWidget {
     final period = AppConstants.periods[p];
     final time = AppConstants.defaultTimes[period] ?? '';
     final parts = time.split('-');
-
-    final starts = <int, ScheduleEvent>{};
-    final covered = <int>{};
-    for (var d = 0; d < 7; d++) {
-      for (final e in eventsForDate(dates[d])) {
-        final r = periodRange(e.period);
-        if (r.start == p) {
-          starts[d] = e;
-        } else if (r.start < p && p <= r.end) {
-          covered.add(d);
-        }
-      }
-    }
 
     return SizedBox(
       height: rowH,
@@ -267,40 +305,17 @@ class _PeriodRow extends StatelessWidget {
           ),
           for (var d = 0; d < 7; d++)
             Expanded(
-              child: starts.containsKey(d)
-                  ? Padding(
-                      padding: const EdgeInsets.all(2),
-                      child: _CourseCard(
-                        event: starts[d]!,
-                        isToday: sameDate(dates[d], today),
-                      ),
-                    )
-                  : covered.contains(d)
-                      ? Container(
-                          decoration: const BoxDecoration(
-                            color: AppTheme.soft,
-                            border: Border(
-                              right: BorderSide(color: AppTheme.line),
-                              bottom: BorderSide(color: AppTheme.line),
-                            ),
-                          ),
-                          alignment: Alignment.center,
-                          child: const Text(
-                            '',
-                            style: TextStyle(fontSize: 8, color: AppTheme.faint),
-                          ),
-                        )
-                      : Container(
-                          decoration: BoxDecoration(
-                            color: sameDate(dates[d], today)
-                                ? AppTheme.today
-                                : Colors.white,
-                            border: const Border(
-                              right: BorderSide(color: AppTheme.line),
-                              bottom: BorderSide(color: AppTheme.line),
-                            ),
-                          ),
-                        ),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: sameDate(dates[d], today)
+                      ? AppTheme.today
+                      : Colors.white,
+                  border: const Border(
+                    right: BorderSide(color: AppTheme.line),
+                    bottom: BorderSide(color: AppTheme.line),
+                  ),
+                ),
+              ),
             ),
         ],
       ),
@@ -337,34 +352,25 @@ class _CourseCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(6),
+        border: isToday
+            ? const Border.fromBorderSide(
+                BorderSide(color: AppTheme.ink, width: 0.8),
+              )
+            : null,
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             event.course,
-            maxLines: 2,
+            maxLines: r.rowspan >= 3 ? 3 : 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w800,
               color: AppTheme.ink,
               height: 1.15,
-            ),
-          ),
-          const Spacer(),
-          Text(
-            r.rowspan > 1
-                ? '$startT-$endT · ${r.rowspan}节'
-                : '$startT-$endT',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 8,
-              color: AppTheme.muted,
-              fontFeatures: [FontFeature.tabularFigures()],
             ),
           ),
           if (event.location.isNotEmpty)
@@ -378,6 +384,17 @@ class _CourseCard extends StatelessWidget {
                 color: AppTheme.ink,
               ),
             ),
+          const Spacer(),
+          Text(
+            r.rowspan > 1 ? '$startT-$endT · ${r.rowspan}节' : '$startT-$endT',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 8,
+              color: AppTheme.muted,
+              fontFeatures: [FontFeature.tabularFigures()],
+            ),
+          ),
         ],
       ),
     );

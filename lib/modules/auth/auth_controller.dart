@@ -141,12 +141,6 @@ class SchoolSession extends GetxController {
   SchoolClient? client;
 
   @override
-  void onInit() {
-    super.onInit();
-    restore();
-  }
-
-  @override
   void onClose() {
     client?.close();
     super.onClose();
@@ -163,6 +157,7 @@ class SchoolSession extends GetxController {
       if (payload is Map<String, dynamic>) {
         final restored = SchoolClient();
         restored.restore(payload);
+        restored.rememberStudent(studentId.value, studentName.value);
         client = restored;
       }
     } catch (_) {}
@@ -173,6 +168,27 @@ class SchoolSession extends GetxController {
     client = next;
     studentId.value = result.studentId;
     studentName.value = result.studentName;
+  }
+
+  Future<void> persistCookies() async {
+    final current = client;
+    if (current == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('school_cookies', jsonEncode(current.dump()));
+    if (studentId.value.isNotEmpty) {
+      await prefs.setString('student_id', studentId.value);
+    }
+    if (studentName.value.isNotEmpty) {
+      await prefs.setString('student_name', studentName.value);
+    }
+  }
+
+  /// 学校会话失效：丢掉 Cookie，本地课表留下。
+  Future<void> invalidate() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('school_cookies');
+    client?.close();
+    client = null;
   }
 
   Future<void> logout() async {
@@ -191,6 +207,7 @@ class SchoolSession extends GetxController {
     final existing = client;
     if (existing != null) return existing;
     final created = SchoolClient();
+    created.rememberStudent(studentId.value, studentName.value);
     client = created;
     return created;
   }

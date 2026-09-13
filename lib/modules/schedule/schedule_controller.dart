@@ -189,11 +189,12 @@ class ScheduleController extends GetxController {
         session.studentName.value = parsed.studentName;
       }
       await _db.saveSchedule(parsed);
+      await session.persistCookies();
       status.value = '已更新 · ${parsed.events.length} 条课程安排（已写入本地库）';
     } on SchoolException catch (err) {
       status.value = err.message;
       isError.value = true;
-      if (err.isSessionExpired) _forceLogout();
+      if (err.isSessionExpired) await _forceLogout(clearCookies: true);
     } catch (err) {
       status.value = '$err';
       isError.value = true;
@@ -209,10 +210,11 @@ class ScheduleController extends GetxController {
 
   Future<void> logout() async {
     await session.logout();
-    _forceLogout();
+    await _forceLogout(clearCookies: false);
   }
 
-  void _forceLogout() {
+  Future<void> _forceLogout({required bool clearCookies}) async {
+    if (clearCookies) await session.invalidate();
     Get.offAllNamed(LoginPage.routeName);
   }
 
