@@ -44,7 +44,6 @@ class WeekTimetable extends StatelessWidget {
         dates: dates,
         eventsForDate: eventsForDate,
         headerH: headerH,
-        rowH: rowH,
         breakH: breakH,
       ),
     );
@@ -56,19 +55,17 @@ class _Grid extends StatelessWidget {
     required this.dates,
     required this.eventsForDate,
     required this.headerH,
-    required this.rowH,
     required this.breakH,
   });
 
   final List<DateTime> dates;
   final List<ScheduleEvent> Function(DateTime date) eventsForDate;
   final double headerH;
-  final double rowH;
   final double breakH;
 
   static const _periodW = 44.0;
 
-  double _periodTop(int p) {
+  double _periodTop(int p, double rowH) {
     var y = headerH;
     for (var i = 0; i <= p; i++) {
       if (AppConstants.sectionBreaks.containsKey(i)) y += breakH;
@@ -77,66 +74,70 @@ class _Grid extends StatelessWidget {
     return y;
   }
 
-  double _spanHeight(int start, int end) {
-    return _periodTop(end) + rowH - _periodTop(start);
-  }
-
   @override
   Widget build(BuildContext context) {
     final today = DateTime.now();
-    final rows = <Widget>[
-      SizedBox(
-        height: headerH,
-        child: Row(
-          children: [
-            const _PeriodHeadCell(),
-            for (var i = 0; i < 7; i++)
-              Expanded(
-                child: _DayHead(
-                  date: dates[i],
-                  label: '周${AppConstants.weekdays[i]}',
-                  isToday: sameDate(dates[i], today),
-                ),
-              ),
-          ],
-        ),
-      ),
-    ];
-
-    for (var p = 0; p < AppConstants.periods.length; p++) {
-      final section = AppConstants.sectionBreaks[p];
-      if (section != null) {
-        rows.add(
-          Container(
-            height: breakH,
-            color: AppTheme.soft,
-            alignment: Alignment.centerLeft,
-            padding: const EdgeInsets.only(left: 10),
-            child: Text(
-              section,
-              style: const TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.w700,
-                color: AppTheme.faint,
-                letterSpacing: 1.2,
-              ),
-            ),
-          ),
-        );
-      }
-      rows.add(
-        _PeriodRow(
-          p: p,
-          dates: dates,
-          rowH: rowH,
-          today: today,
-        ),
-      );
-    }
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        final periodCount = AppConstants.periods.length;
+        final breakCount = AppConstants.sectionBreaks.length;
+        final rowH =
+            (constraints.maxHeight - headerH - breakCount * breakH) /
+                periodCount;
         final dayW = (constraints.maxWidth - _periodW) / 7;
+
+        final rows = <Widget>[
+          SizedBox(
+            height: headerH,
+            child: Row(
+              children: [
+                const _PeriodHeadCell(),
+                for (var i = 0; i < 7; i++)
+                  Expanded(
+                    child: _DayHead(
+                      date: dates[i],
+                      label: '周${AppConstants.weekdays[i]}',
+                      isToday: sameDate(dates[i], today),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ];
+
+        for (var p = 0; p < periodCount; p++) {
+          final section = AppConstants.sectionBreaks[p];
+          if (section != null) {
+            rows.add(
+              Container(
+                height: breakH,
+                color: AppTheme.soft,
+                alignment: Alignment.centerLeft,
+                padding: const EdgeInsets.only(left: 10),
+                child: Text(
+                  section,
+                  style: const TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.faint,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
+            );
+          }
+          rows.add(
+            Expanded(
+              child: _PeriodRow(
+                p: p,
+                dates: dates,
+                today: today,
+              ),
+            ),
+          );
+        }
+
         final cards = <Widget>[];
         for (var d = 0; d < 7; d++) {
           final events = eventsForDate(dates[d]);
@@ -150,12 +151,15 @@ class _Grid extends StatelessWidget {
               final event = started[i];
               final range = periodRange(event.period);
               final splitW = dayW / started.length;
+              final top = _periodTop(range.start, rowH);
+              final height =
+                  _periodTop(range.end, rowH) + rowH - top;
               cards.add(
                 Positioned(
                   left: _periodW + d * dayW + i * splitW + 1.5,
-                  top: _periodTop(range.start) + 1.5,
+                  top: top + 1.5,
                   width: splitW - 3,
-                  height: _spanHeight(range.start, range.end) - 3,
+                  height: (height - 3).clamp(0.0, double.infinity),
                   child: _CourseCard(
                     event: event,
                     isToday: sameDate(dates[d], today),
@@ -168,7 +172,7 @@ class _Grid extends StatelessWidget {
 
         return Stack(
           children: [
-            Column(mainAxisSize: MainAxisSize.min, children: rows),
+            Column(children: rows),
             ...cards,
           ],
         );
@@ -249,13 +253,11 @@ class _PeriodRow extends StatelessWidget {
   const _PeriodRow({
     required this.p,
     required this.dates,
-    required this.rowH,
     required this.today,
   });
 
   final int p;
   final List<DateTime> dates;
-  final double rowH;
   final DateTime today;
 
   @override
@@ -264,45 +266,50 @@ class _PeriodRow extends StatelessWidget {
     final time = AppConstants.defaultTimes[period] ?? '';
     final parts = time.split('-');
 
-    return SizedBox(
-      height: rowH,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            width: 44,
-            decoration: const BoxDecoration(
-              color: AppTheme.soft,
-              border: Border(
-                right: BorderSide(color: AppTheme.line),
-                bottom: BorderSide(color: AppTheme.line),
-              ),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  period.startsWith('中午')
-                      ? '午${period.substring(2)}'
-                      : period,
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                if (parts.isNotEmpty)
-                  Text(
-                    parts.first,
-                    style: const TextStyle(fontSize: 7.5, color: AppTheme.muted),
-                  ),
-                if (parts.length > 1)
-                  Text(
-                    parts.last,
-                    style: const TextStyle(fontSize: 7.5, color: AppTheme.muted),
-                  ),
-              ],
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          width: 44,
+          decoration: const BoxDecoration(
+            color: AppTheme.soft,
+            border: Border(
+              right: BorderSide(color: AppTheme.line),
+              bottom: BorderSide(color: AppTheme.line),
             ),
           ),
+          clipBehavior: Clip.hardEdge,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 1),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    period.startsWith('中午')
+                        ? '午${period.substring(2)}'
+                        : period,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (parts.isNotEmpty)
+                    Text(
+                      parts.first,
+                      style: const TextStyle(fontSize: 7.5, color: AppTheme.muted),
+                    ),
+                  if (parts.length > 1)
+                    Text(
+                      parts.last,
+                      style: const TextStyle(fontSize: 7.5, color: AppTheme.muted),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
           for (var d = 0; d < 7; d++)
             Expanded(
               child: Container(
@@ -318,7 +325,6 @@ class _PeriodRow extends StatelessWidget {
               ),
             ),
         ],
-      ),
     );
   }
 }
@@ -358,44 +364,54 @@ class _CourseCard extends StatelessWidget {
               )
             : null,
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            event.course,
-            maxLines: r.rowspan >= 3 ? 3 : 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              color: AppTheme.ink,
-              height: 1.15,
-            ),
-          ),
-          if (event.location.isNotEmpty)
-            Text(
-              event.location,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.ink,
+      clipBehavior: Clip.hardEdge,
+      child: LayoutBuilder(
+        builder: (context, box) {
+          final showTime = box.maxHeight >= 28;
+          final showLoc = event.location.isNotEmpty && box.maxHeight >= 42;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  event.course,
+                  maxLines: r.rowspan >= 3 ? 3 : 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.ink,
+                    height: 1.15,
+                  ),
+                ),
               ),
-            ),
-          const Spacer(),
-          Text(
-            r.rowspan > 1 ? '$startT-$endT · ${r.rowspan}节' : '$startT-$endT',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 8,
-              color: AppTheme.muted,
-              fontFeatures: [FontFeature.tabularFigures()],
-            ),
-          ),
-        ],
+              if (showLoc)
+                Text(
+                  event.location,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.ink,
+                  ),
+                ),
+              if (showTime)
+                Text(
+                  r.rowspan > 1
+                      ? '$startT-$endT · ${r.rowspan}节'
+                      : '$startT-$endT',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 8,
+                    color: AppTheme.muted,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
