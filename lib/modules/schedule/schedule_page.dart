@@ -52,7 +52,6 @@ class SchedulePage extends StatelessWidget {
       body: SafeArea(
         child: Obx(() {
           final scheduleData = controller.data.value;
-          final loading = controller.loading.value;
           final statusText = controller.status.value;
           final error = controller.isError.value;
           final week = controller.week;
@@ -90,12 +89,10 @@ class SchedulePage extends StatelessWidget {
                   week: week,
                   weekOptions: weekOptions,
                   maxWeek: maxWeek,
-                  loading: loading,
                   onPrev: controller.goPrevWeek,
                   onNext: controller.goNextWeek,
                   onJump: controller.jumpToWeek,
                   onToday: controller.backToToday,
-                  onRefresh: () => controller.sync(),
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -202,12 +199,10 @@ class _WeekNav extends StatelessWidget {
     required this.week,
     required this.weekOptions,
     required this.maxWeek,
-    required this.loading,
     required this.onPrev,
     required this.onNext,
     required this.onJump,
     required this.onToday,
-    required this.onRefresh,
   });
 
   final String weekHeading;
@@ -215,12 +210,10 @@ class _WeekNav extends StatelessWidget {
   final int? week;
   final List<Map<String, String>> weekOptions;
   final int maxWeek;
-  final bool loading;
   final VoidCallback onPrev;
   final VoidCallback onNext;
   final ValueChanged<int> onJump;
   final VoidCallback onToday;
-  final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context) {
@@ -295,11 +288,6 @@ class _WeekNav extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 _GhostButton(label: '今天', onTap: onToday),
-                const SizedBox(width: 8),
-                _InkButton(
-                  label: loading ? '同步中' : '刷新',
-                  onTap: loading ? null : onRefresh,
-                ),
               ],
             ),
           ),
@@ -440,38 +428,6 @@ class _GhostButton extends StatelessWidget {
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: AppTheme.ink,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _InkButton extends StatelessWidget {
-  const _InkButton({required this.label, this.onTap});
-
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: onTap == null ? AppTheme.faint : AppTheme.ink,
-      borderRadius: BorderRadius.circular(999),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: Container(
-          height: 36,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
             ),
           ),
         ),
