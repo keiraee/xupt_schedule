@@ -169,44 +169,27 @@ class _TopBar extends StatelessWidget {
             ),
           ),
         ),
-        if (terms.isNotEmpty)
-          SizedBox(
-            width: 150,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppTheme.line),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  isDense: true,
-                  isExpanded: true,
-                  value: selectedCode.isNotEmpty &&
-                          terms.any((t) => t.code == selectedCode)
-                      ? selectedCode
-                      : null,
-                  hint: const Text('学期', style: TextStyle(fontSize: 12)),
-                  items: terms
-                      .map(
-                        (t) => DropdownMenuItem(
-                          value: t.code,
-                          child: Text(
-                            t.label,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 11),
-                          ),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (v) {
-                    if (v != null) onChangeTerm(v);
-                  },
-                ),
-              ),
+        if (terms.isNotEmpty) ...[
+          const SizedBox(width: 10),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 176, minWidth: 128),
+            child: _PaperSelect(
+              text: _labelForTerm(terms, selectedCode),
+              onTap: () async {
+                final next = await showPaperOptions<String>(
+                  context: context,
+                  title: '选择学期',
+                  selected: selectedCode,
+                  options: [
+                    for (final term in terms)
+                      PaperOption(value: term.code, label: term.label),
+                  ],
+                );
+                if (next != null) onChangeTerm(next);
+              },
             ),
           ),
+        ],
       ],
     );
   }
@@ -273,67 +256,52 @@ class _WeekNav extends StatelessWidget {
               IconButton(onPressed: onNext, icon: const Icon(Icons.chevron_right)),
             ],
           ),
-          Row(
-            children: [
-              Expanded(
-                child: Builder(builder: (context) {
-                  final w = week;
-                  final ok = w != null && w >= 1 && w <= maxWeek && weekOptions.isNotEmpty;
-                  return Container(
-                    height: 36,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    decoration: BoxDecoration(
-                      color: AppTheme.soft,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        isDense: true,
-                        isExpanded: true,
-                        value: ok ? '$w' : null,
-                        hint: const Text('跳周', style: TextStyle(fontSize: 12)),
-                        items: weekOptions
-                            .map(
-                              (o) => DropdownMenuItem(
-                                value: o['value'],
-                                child: Text(
-                                  o['label']!,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 11),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: weekOptions.isEmpty
-                            ? null
-                            : (v) {
-                                final n = int.tryParse(v ?? '');
-                                if (n != null) onJump(n);
-                              },
-                      ),
-                    ),
-                  );
-                }),
-              ),
-              const SizedBox(width: 6),
-              OutlinedButton(
-                onPressed: onToday,
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(0, 36),
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _PaperSelect(
+                    text: () {
+                      final current = week;
+                      return current != null && current >= 1
+                          ? '第 $current 周'
+                          : '跳周';
+                    }(),
+                    enabled: weekOptions.isNotEmpty,
+                    onTap: weekOptions.isEmpty
+                        ? null
+                        : () async {
+                            final current = week;
+                            final next = await showPaperOptions<int>(
+                              context: context,
+                              title: '跳到指定周',
+                              selected: current != null &&
+                                      current >= 1 &&
+                                      current <= maxWeek
+                                  ? current
+                                  : null,
+                              options: [
+                                for (final option in weekOptions)
+                                  PaperOption(
+                                    value: int.parse(option['value']!),
+                                    label: option['label']!,
+                                  ),
+                              ],
+                            );
+                            if (next != null) onJump(next);
+                          },
+                  ),
                 ),
-                child: const Text('今天', style: TextStyle(fontSize: 12)),
-              ),
-              const SizedBox(width: 6),
-              FilledButton(
-                onPressed: loading ? null : onRefresh,
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(0, 36),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                const SizedBox(width: 8),
+                _GhostButton(label: '今天', onTap: onToday),
+                const SizedBox(width: 8),
+                _InkButton(
+                  label: loading ? '同步中' : '刷新',
+                  onTap: loading ? null : onRefresh,
                 ),
-                child: Text(loading ? '…' : '刷新', style: const TextStyle(fontSize: 12)),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -375,4 +343,230 @@ class _BodyPlaceholder extends StatelessWidget {
       child: Center(child: CircularProgressIndicator()),
     );
   }
+}
+
+String _labelForTerm(List<TermOption> terms, String selectedCode) {
+  for (final term in terms) {
+    if (term.code == selectedCode) return term.label;
+  }
+  return '学期';
+}
+
+class PaperOption<T> {
+  const PaperOption({required this.value, required this.label});
+
+  final T value;
+  final String label;
+}
+
+class _PaperSelect extends StatelessWidget {
+  const _PaperSelect({
+    required this.text,
+    this.onTap,
+    this.enabled = true,
+  });
+
+  final String text;
+  final VoidCallback? onTap;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppTheme.soft,
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          height: 36,
+          padding: const EdgeInsets.fromLTRB(12, 0, 8, 0),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: AppTheme.line),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  text,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: enabled ? AppTheme.ink : AppTheme.faint,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.expand_more,
+                size: 18,
+                color: enabled ? AppTheme.muted : AppTheme.faint,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GhostButton extends StatelessWidget {
+  const _GhostButton({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          height: 36,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: AppTheme.lineStrong),
+          ),
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.ink,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InkButton extends StatelessWidget {
+  const _InkButton({required this.label, this.onTap});
+
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: onTap == null ? AppTheme.faint : AppTheme.ink,
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          height: 36,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Future<T?> showPaperOptions<T>({
+  required BuildContext context,
+  required String title,
+  required List<PaperOption<T>> options,
+  T? selected,
+}) {
+  return showModalBottomSheet<T>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: const Color(0xFFF6F5F1),
+    showDragHandle: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+    ),
+    builder: (context) {
+      final maxH = MediaQuery.of(context).size.height * 0.72;
+      return SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxH),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.ink,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: options.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final option = options[index];
+                      final active = option.value == selected;
+                      return Material(
+                        color: active ? AppTheme.ink : Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(14),
+                          onTap: () => Navigator.pop(context, option.value),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 13,
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    option.label,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: active
+                                          ? Colors.white
+                                          : AppTheme.ink,
+                                      height: 1.3,
+                                    ),
+                                  ),
+                                ),
+                                if (active)
+                                  const Icon(
+                                    Icons.check,
+                                    size: 18,
+                                    color: Colors.white,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
 }
