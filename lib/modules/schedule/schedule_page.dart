@@ -64,7 +64,8 @@ class SchedulePage extends StatelessWidget {
           final termCode = controller.selectedTermCode;
           final weekOptions = controller.weekOptions;
           final maxWeek = controller.maxWeek;
-          final dayDates = controller.dates;
+          final dayDates = controller.weekdayDates;
+          final weekendEvents = controller.weekendEvents;
           // 触发依赖
           controller.selectedDate.value;
           controller.selectedMonday.value;
@@ -120,6 +121,13 @@ class SchedulePage extends StatelessWidget {
                     dates: dayDates,
                     eventsForDate: controller.eventsForDate,
                   ),
+                  if (weekendEvents.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      '本周周末还有 ${weekendEvents.length} 门课，未画进网格。',
+                      style: const TextStyle(fontSize: 11, color: AppTheme.muted),
+                    ),
+                  ],
                   const SizedBox(height: 10),
                   UnscheduledList(items: scheduleData.unscheduled),
                 ],

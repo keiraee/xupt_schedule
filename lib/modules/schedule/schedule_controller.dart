@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/constants.dart';
 import '../../core/schedule_utils.dart';
 import '../../data/school/schedule_db.dart';
 import '../../data/school/school_client.dart';
@@ -64,6 +65,17 @@ class ScheduleController extends GetxController {
   List<DateTime> get dates =>
       List.generate(7, (index) => addDays(monday, index));
 
+  List<DateTime> get weekdayDates =>
+      List.generate(AppConstants.weekdayCount, (index) => addDays(monday, index));
+
+  List<ScheduleEvent> get weekendEvents {
+    final items = <ScheduleEvent>[];
+    for (final date in dates.skip(AppConstants.weekdayCount)) {
+      items.addAll(eventsForDate(date));
+    }
+    return items;
+  }
+
   String get termLabel => data.value?.selectedTermLabel ?? '';
 
   String get selectedTermCode {
@@ -94,7 +106,7 @@ class ScheduleController extends GetxController {
   }
 
   String get weekRangeLabel {
-    return '${formatShortDate(monday)} — ${formatShortDate(addDays(monday, 6))}';
+    return '${formatShortDate(monday)} — ${formatShortDate(addDays(monday, AppConstants.weekdayCount - 1))}';
   }
 
   String get selectedDayLabel {

@@ -5,7 +5,7 @@ import '../../../core/constants.dart';
 import '../../../core/schedule_utils.dart';
 import '../../../data/school/school_client.dart';
 
-/// 周课表：宽度撑满、高度按剩余空间均分，连排课跨行叠在格子上。
+/// 周一到周五课表。行高按内容来，整页滚动，卡片直接写出课名和地点。
 class WeekTimetable extends StatelessWidget {
   const WeekTimetable({
     super.key,
@@ -16,24 +16,16 @@ class WeekTimetable extends StatelessWidget {
   final List<DateTime> dates;
   final List<ScheduleEvent> Function(DateTime date) eventsForDate;
 
+  static const headerH = 42.0;
+  static const breakH = 22.0;
+  static const rowH = 86.0;
+  static const periodW = 46.0;
+
   @override
   Widget build(BuildContext context) {
-    final media = MediaQuery.of(context);
-    final breakCount = AppConstants.sectionBreaks.length;
-    final budgetH = media.size.height -
-        media.padding.top -
-        media.padding.bottom -
-        190;
-    const headerH = 36.0;
-    const breakH = 15.0;
-    final rowH = ((budgetH - headerH - breakCount * breakH) /
-            AppConstants.periods.length)
-        .clamp(28.0, 64.0);
-    final totalH =
-        headerH + AppConstants.periods.length * rowH + breakCount * breakH;
+    final days = dates.take(AppConstants.weekdayCount).toList();
 
     return Container(
-      height: totalH,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -41,10 +33,8 @@ class WeekTimetable extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: _Grid(
-        dates: dates,
+        dates: days,
         eventsForDate: eventsForDate,
-        headerH: headerH,
-        breakH: breakH,
       ),
     );
   }
@@ -54,22 +44,18 @@ class _Grid extends StatelessWidget {
   const _Grid({
     required this.dates,
     required this.eventsForDate,
-    required this.headerH,
-    required this.breakH,
   });
 
   final List<DateTime> dates;
   final List<ScheduleEvent> Function(DateTime date) eventsForDate;
-  final double headerH;
-  final double breakH;
 
-  static const _periodW = 44.0;
-
-  double _periodTop(int p, double rowH) {
-    var y = headerH;
+  double _periodTop(int p) {
+    var y = WeekTimetable.headerH;
     for (var i = 0; i <= p; i++) {
-      if (AppConstants.sectionBreaks.containsKey(i)) y += breakH;
-      if (i < p) y += rowH;
+      if (AppConstants.sectionBreaks.containsKey(i)) {
+        y += WeekTimetable.breakH;
+      }
+      if (i < p) y += WeekTimetable.rowH;
     }
     return y;
   }
@@ -77,69 +63,63 @@ class _Grid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final today = DateTime.now();
+    final dayCount = dates.length;
+
+    final rows = <Widget>[
+      SizedBox(
+        height: WeekTimetable.headerH,
+        child: Row(
+          children: [
+            const _PeriodHeadCell(),
+            for (var i = 0; i < dayCount; i++)
+              Expanded(
+                child: _DayHead(
+                  date: dates[i],
+                  label: '周${AppConstants.weekdays[i]}',
+                  isToday: sameDate(dates[i], today),
+                ),
+              ),
+          ],
+        ),
+      ),
+    ];
+
+    for (var p = 0; p < AppConstants.periods.length; p++) {
+      final section = AppConstants.sectionBreaks[p];
+      if (section != null) {
+        rows.add(
+          Container(
+            height: WeekTimetable.breakH,
+            color: AppTheme.soft,
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.only(left: 10),
+            child: Text(
+              section,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.faint,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
+        );
+      }
+      rows.add(
+        _PeriodRow(
+          p: p,
+          dates: dates,
+          today: today,
+        ),
+      );
+    }
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final periodCount = AppConstants.periods.length;
-        final breakCount = AppConstants.sectionBreaks.length;
-        final rowH =
-            (constraints.maxHeight - headerH - breakCount * breakH) /
-                periodCount;
-        final dayW = (constraints.maxWidth - _periodW) / 7;
-
-        final rows = <Widget>[
-          SizedBox(
-            height: headerH,
-            child: Row(
-              children: [
-                const _PeriodHeadCell(),
-                for (var i = 0; i < 7; i++)
-                  Expanded(
-                    child: _DayHead(
-                      date: dates[i],
-                      label: '周${AppConstants.weekdays[i]}',
-                      isToday: sameDate(dates[i], today),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ];
-
-        for (var p = 0; p < periodCount; p++) {
-          final section = AppConstants.sectionBreaks[p];
-          if (section != null) {
-            rows.add(
-              Container(
-                height: breakH,
-                color: AppTheme.soft,
-                alignment: Alignment.centerLeft,
-                padding: const EdgeInsets.only(left: 10),
-                child: Text(
-                  section,
-                  style: const TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.faint,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ),
-            );
-          }
-          rows.add(
-            Expanded(
-              child: _PeriodRow(
-                p: p,
-                dates: dates,
-                today: today,
-              ),
-            ),
-          );
-        }
-
+        final dayW =
+            (constraints.maxWidth - WeekTimetable.periodW) / dayCount;
         final cards = <Widget>[];
-        for (var d = 0; d < 7; d++) {
+        for (var d = 0; d < dayCount; d++) {
           final events = eventsForDate(dates[d]);
           final groups = <int, List<ScheduleEvent>>{};
           for (final event in events) {
@@ -151,15 +131,14 @@ class _Grid extends StatelessWidget {
               final event = started[i];
               final range = periodRange(event.period);
               final splitW = dayW / started.length;
-              final top = _periodTop(range.start, rowH);
-              final height =
-                  _periodTop(range.end, rowH) + rowH - top;
+              final top = _periodTop(range.start);
+              final height = _periodTop(range.end) + WeekTimetable.rowH - top;
               cards.add(
                 Positioned(
-                  left: _periodW + d * dayW + i * splitW + 1.5,
-                  top: top + 1.5,
-                  width: splitW - 3,
-                  height: (height - 3).clamp(0.0, double.infinity),
+                  left: WeekTimetable.periodW + d * dayW + i * splitW + 2,
+                  top: top + 2,
+                  width: splitW - 4,
+                  height: height - 4,
                   child: _CourseCard(
                     event: event,
                     isToday: sameDate(dates[d], today),
@@ -172,7 +151,7 @@ class _Grid extends StatelessWidget {
 
         return Stack(
           children: [
-            Column(children: rows),
+            Column(mainAxisSize: MainAxisSize.min, children: rows),
             ...cards,
           ],
         );
@@ -187,7 +166,7 @@ class _PeriodHeadCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 44,
+      width: WeekTimetable.periodW,
       alignment: Alignment.center,
       decoration: const BoxDecoration(
         border: Border(
@@ -197,7 +176,7 @@ class _PeriodHeadCell extends StatelessWidget {
       ),
       child: const Text(
         '节次',
-        style: TextStyle(fontSize: 10, color: AppTheme.muted),
+        style: TextStyle(fontSize: 11, color: AppTheme.muted),
       ),
     );
   }
@@ -231,7 +210,7 @@ class _DayHead extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: FontWeight.w700,
               color: isToday ? Colors.white : AppTheme.ink,
             ),
@@ -239,7 +218,7 @@ class _DayHead extends StatelessWidget {
           Text(
             '${date.month}/${date.day}',
             style: TextStyle(
-              fontSize: 9,
+              fontSize: 10,
               color: isToday ? Colors.white70 : AppTheme.muted,
             ),
           ),
@@ -266,51 +245,44 @@ class _PeriodRow extends StatelessWidget {
     final time = AppConstants.defaultTimes[period] ?? '';
     final parts = time.split('-');
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
-          width: 44,
-          decoration: const BoxDecoration(
-            color: AppTheme.soft,
-            border: Border(
-              right: BorderSide(color: AppTheme.line),
-              bottom: BorderSide(color: AppTheme.line),
-            ),
-          ),
-          clipBehavior: Clip.hardEdge,
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 1),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    period.startsWith('中午')
-                        ? '午${period.substring(2)}'
-                        : period,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  if (parts.isNotEmpty)
-                    Text(
-                      parts.first,
-                      style: const TextStyle(fontSize: 7.5, color: AppTheme.muted),
-                    ),
-                  if (parts.length > 1)
-                    Text(
-                      parts.last,
-                      style: const TextStyle(fontSize: 7.5, color: AppTheme.muted),
-                    ),
-                ],
+    return SizedBox(
+      height: WeekTimetable.rowH,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            width: WeekTimetable.periodW,
+            decoration: const BoxDecoration(
+              color: AppTheme.soft,
+              border: Border(
+                right: BorderSide(color: AppTheme.line),
+                bottom: BorderSide(color: AppTheme.line),
               ),
             ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  period.startsWith('中午') ? '午${period.substring(2)}' : period,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                if (parts.isNotEmpty)
+                  Text(
+                    parts.first,
+                    style: const TextStyle(fontSize: 9, color: AppTheme.muted),
+                  ),
+                if (parts.length > 1)
+                  Text(
+                    parts.last,
+                    style: const TextStyle(fontSize: 9, color: AppTheme.muted),
+                  ),
+              ],
+            ),
           ),
-        ),
-          for (var d = 0; d < 7; d++)
+          for (var d = 0; d < dates.length; d++)
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
@@ -325,6 +297,7 @@ class _PeriodRow extends StatelessWidget {
               ),
             ),
         ],
+      ),
     );
   }
 }
@@ -348,70 +321,152 @@ class _CourseCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final r = periodRange(event.period);
-    final startT =
-        (AppConstants.defaultTimes[r.startKey] ?? '').split('-').first;
-    final endT = (AppConstants.defaultTimes[r.endKey] ?? '').split('-').last;
     final bg = _palette[event.course.hashCode.abs() % _palette.length];
+    final lines = r.rowspan >= 3 ? 6 : (r.rowspan >= 2 ? 4 : 3);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(6),
-        border: isToday
-            ? const Border.fromBorderSide(
-                BorderSide(color: AppTheme.ink, width: 0.8),
-              )
-            : null,
-      ),
+    return Material(
+      color: bg,
+      borderRadius: BorderRadius.circular(8),
       clipBehavior: Clip.hardEdge,
-      child: LayoutBuilder(
-        builder: (context, box) {
-          final showTime = box.maxHeight >= 28;
-          final showLoc = event.location.isNotEmpty && box.maxHeight >= 42;
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(
+      child: InkWell(
+        onTap: () => _showDetail(context),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            border: isToday
+                ? const Border.fromBorderSide(
+                    BorderSide(color: AppTheme.ink, width: 0.8),
+                  )
+                : null,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(6, 5, 6, 5),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
                   event.course,
-                  maxLines: r.rowspan >= 3 ? 3 : 2,
+                  maxLines: lines,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: FontWeight.w800,
                     color: AppTheme.ink,
-                    height: 1.15,
+                    height: 1.25,
                   ),
+                ),
+                if (event.location.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    event.location,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.ink,
+                      height: 1.2,
+                    ),
+                  ),
+                ],
+                if (event.teacher.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    event.teacher,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppTheme.muted,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showDetail(BuildContext context) {
+    final time = periodTimeRange(
+      period: event.period,
+      periodTimes: AppConstants.defaultTimes,
+    );
+    final weeks = weekRule(
+      weekStart: event.weekStart,
+      weekEnd: event.weekEnd,
+      weekPattern: event.weekPattern,
+    );
+
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: Colors.white,
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                event.course,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.ink,
                 ),
               ),
-              if (showLoc)
-                Text(
-                  event.location,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.ink,
-                  ),
-                ),
-              if (showTime)
-                Text(
-                  r.rowspan > 1
-                      ? '$startT-$endT · ${r.rowspan}节'
-                      : '$startT-$endT',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 8,
-                    color: AppTheme.muted,
-                    fontFeatures: [FontFeature.tabularFigures()],
-                  ),
-                ),
+              const SizedBox(height: 12),
+              _DetailLine(label: '时间', value: '周${event.weekday} · $time'),
+              _DetailLine(label: '周次', value: weeks),
+              if (event.location.isNotEmpty)
+                _DetailLine(label: '地点', value: event.location),
+              if (event.teacher.isNotEmpty)
+                _DetailLine(label: '教师', value: event.teacher),
+              if (event.className.isNotEmpty)
+                _DetailLine(label: '班级', value: event.className),
             ],
-          );
-        },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _DetailLine extends StatelessWidget {
+  const _DetailLine({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 36,
+            child: Text(
+              label,
+              style: const TextStyle(fontSize: 13, color: AppTheme.muted),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.ink,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

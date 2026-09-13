@@ -18,6 +18,7 @@ class AppConstants {
   };
 
   static const weekdays = <String>['一', '二', '三', '四', '五', '六', '日'];
+  static const weekdayCount = 5;
 
   static const periods = <String>[
     '1',
