@@ -109,12 +109,6 @@ class ScheduleController extends GetxController {
     return '${formatShortDate(monday)} — ${formatShortDate(addDays(monday, AppConstants.weekdayCount - 1))}';
   }
 
-  String get selectedDayLabel {
-    final d = selectedDate.value;
-    final idx = d.weekday - 1;
-    return '周${AppConstantsWeekdaysSafe.label(idx)} · ${formatShortDate(d)}';
-  }
-
   String get weekStatus {
     final current = week;
     final start = termStart;
@@ -246,13 +240,5 @@ class ScheduleController extends GetxController {
             '第 $weekNumber 周 · ${formatter.format(rangeStart)}—${formatter.format(rangeEnd)}',
       };
     });
-  }
-}
-
-class AppConstantsWeekdaysSafe {
-  static String label(int index) {
-    const names = ['一', '二', '三', '四', '五', '六', '日'];
-    if (index < 0 || index >= names.length) return '';
-    return names[index];
   }
 }
