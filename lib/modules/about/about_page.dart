@@ -14,19 +14,31 @@ class AboutPage extends StatefulWidget {
 
 class _AboutPageState extends State<AboutPage> {
   bool _checking = false;
-  UpdateResult? _result;
+  UpdateResult? _updateAvailable;
 
   Future<void> _checkUpdate() async {
     setState(() {
       _checking = true;
-      _result = null;
+      _updateAvailable = null;
     });
     final result = await UpdateService().check();
     if (!mounted) return;
-    setState(() {
-      _checking = false;
-      _result = result;
-    });
+    setState(() => _checking = false);
+
+    if (result.isError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.error)),
+      );
+    } else if (result.hasUpdate) {
+      setState(() => _updateAvailable = result);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('发现新版本 v${result.latestVersion}')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('当前已是最新版本')),
+      );
+    }
   }
 
   @override
@@ -125,47 +137,20 @@ class _AboutPageState extends State<AboutPage> {
             label: Text(_checking ? '检查中…' : '检查更新'),
           ),
         ),
-        if (_result != null) ...[
-          const SizedBox(height: 12),
-          if (_result!.isError)
-            _statusBanner(_result!.error, AppTheme.danger)
-          else if (_result!.hasUpdate) ...[
-            _statusBanner(
-              '发现新版本 v${_result!.latestVersion}',
-              const Color(0xFF2E7D32),
+        if (_updateAvailable != null) ...[
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: _updateAvailable!.downloadUrl.isEmpty
+                  ? null
+                  : () => _openUrl(_updateAvailable!.downloadUrl),
+              icon: const Icon(Icons.download, size: 18),
+              label: Text('下载 v${_updateAvailable!.latestVersion}'),
             ),
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: _result!.downloadUrl.isEmpty
-                    ? null
-                    : () => _openUrl(_result!.downloadUrl),
-                icon: const Icon(Icons.download, size: 18),
-                label: const Text('下载最新版'),
-              ),
-            ),
-          ] else
-            _statusBanner('当前已是最新版本 ✓', AppTheme.muted),
+          ),
         ],
       ],
-    );
-  }
-
-  Widget _statusBanner(String text, Color color) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Text(
-        text,
-        textAlign: TextAlign.center,
-        style: TextStyle(fontSize: 13, color: color, height: 1.4),
-      ),
     );
   }
 
