@@ -961,6 +961,14 @@ class SchoolClient {
       },
       body: body,
     );
+    if (_isLoginUrl(switched.url.toString())) {
+      throw SchoolException('学校登录状态已失效，请重新登录。',
+          code: 'session_expired');
+    }
+    if (switched.statusCode >= 400) {
+      throw SchoolException('切换学期失败（HTTP ${switched.statusCode}）。',
+          code: 'term_switch_failed');
+    }
     return switched.body;
   }
 }
