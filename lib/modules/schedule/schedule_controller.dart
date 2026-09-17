@@ -57,9 +57,6 @@ class ScheduleController extends GetxController {
     await sync();
   }
 
-  String get studentName => session.studentName.value;
-  String get studentId => session.studentId.value;
-
   DateTime get monday => startOfWeek(selectedMonday.value);
 
   List<DateTime> get dates =>
@@ -91,14 +88,6 @@ class ScheduleController extends GetxController {
 
   int get maxWeek => data.value?.maxWeek ?? 20;
 
-  String get pageTitle {
-    final current = week;
-    if (current != null && current >= 1) {
-      return isCurrentWeek ? '本周课表' : '第 $current 周课表';
-    }
-    return '课表';
-  }
-
   String get weekHeading {
     final current = week;
     if (current != null && current >= 1) return '第 $current 周';
@@ -120,10 +109,6 @@ class ScheduleController extends GetxController {
       return '教学第 $current 周 · 第 1 周 ${formatShortDate(start)}';
     }
     return '等待学期日期信息';
-  }
-
-  void selectDate(DateTime date) {
-    selectedDate.value = startOfDay(date);
   }
 
   void goPrevWeek() {
