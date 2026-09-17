@@ -16,17 +16,15 @@ class ShellPage extends StatefulWidget {
 class _ShellPageState extends State<ShellPage> {
   int _index = 0;
 
-  static const _pages = <Widget>[
-    SchedulePage(),
-    AboutPage(),
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _index,
-        children: _pages,
+      backgroundColor: const Color(0xFFF6F5F1),
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 200),
+        child: _index == 0
+            ? const SchedulePage(key: ValueKey(0))
+            : const AboutPage(key: ValueKey(1)),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
