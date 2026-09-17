@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/constants.dart';
 import '../../data/school/schedule_db.dart';
 import '../../data/school/school_client.dart';
 import '../shell/shell_page.dart';
@@ -110,9 +111,9 @@ class AuthController extends GetxController {
 
   Future<void> _persistAndGo(SchoolClient client, LoginResult result) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('student_id', result.studentId);
-    await prefs.setString('student_name', result.studentName);
-    await prefs.setString('school_cookies', jsonEncode(client.dump()));
+    await prefs.setString(AppConstants.prefsStudentId, result.studentId);
+    await prefs.setString(AppConstants.prefsStudentName, result.studentName);
+    await prefs.setString(AppConstants.prefsSessionCookie, jsonEncode(client.dump()));
     await ScheduleDb.instance.markForceRefresh();
     Get.find<SchoolSession>().adopt(client, result);
     inMfa.value = false;
@@ -148,9 +149,9 @@ class SchoolSession extends GetxController {
 
   Future<void> restore() async {
     final prefs = await SharedPreferences.getInstance();
-    studentId.value = prefs.getString('student_id') ?? '';
-    studentName.value = prefs.getString('student_name') ?? '';
-    final raw = prefs.getString('school_cookies');
+    studentId.value = prefs.getString(AppConstants.prefsStudentId) ?? '';
+    studentName.value = prefs.getString(AppConstants.prefsStudentName) ?? '';
+    final raw = prefs.getString(AppConstants.prefsSessionCookie);
     if (raw == null || raw.isEmpty) return;
     try {
       final payload = jsonDecode(raw);
@@ -174,28 +175,28 @@ class SchoolSession extends GetxController {
     final current = client;
     if (current == null) return;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('school_cookies', jsonEncode(current.dump()));
+    await prefs.setString(AppConstants.prefsSessionCookie, jsonEncode(current.dump()));
     if (studentId.value.isNotEmpty) {
-      await prefs.setString('student_id', studentId.value);
+      await prefs.setString(AppConstants.prefsStudentId, studentId.value);
     }
     if (studentName.value.isNotEmpty) {
-      await prefs.setString('student_name', studentName.value);
+      await prefs.setString(AppConstants.prefsStudentName, studentName.value);
     }
   }
 
   /// 学校会话失效：丢掉 Cookie，本地课表留下。
   Future<void> invalidate() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('school_cookies');
+    await prefs.remove(AppConstants.prefsSessionCookie);
     client?.close();
     client = null;
   }
 
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('student_id');
-    await prefs.remove('student_name');
-    await prefs.remove('school_cookies');
+    await prefs.remove(AppConstants.prefsStudentId);
+    await prefs.remove(AppConstants.prefsStudentName);
+    await prefs.remove(AppConstants.prefsSessionCookie);
     await ScheduleDb.instance.clearSchedule();
     client?.close();
     client = null;

@@ -12,11 +12,7 @@ class AppConstants {
   static const releasesApi =
       'https://api.github.com/repos/$repoOwner/$repoName/releases/latest';
 
-  /// Android 模拟器访问宿主机用 10.0.2.2；真机请改成电脑局域网 IP。
-  static const defaultBaseUrl = 'http://10.0.2.2:8080';
-
-  static const prefsBaseUrl = 'base_url';
-  static const prefsSessionCookie = 'session_cookie';
+  static const prefsSessionCookie = 'school_cookies';
   static const prefsStudentId = 'student_id';
   static const prefsStudentName = 'student_name';
 

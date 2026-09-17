@@ -16,14 +16,6 @@ class PeriodRange {
   final String endKey;
 }
 
-String maskStudentId(String value) {
-  final text = value;
-  if (text.length > 6) {
-    return '${text.substring(0, 3)}••••${text.substring(text.length - 2)}';
-  }
-  return text;
-}
-
 DateTime startOfDay(DateTime value) {
   return DateTime(value.year, value.month, value.day, 12);
 }
@@ -43,10 +35,6 @@ DateTime addDays(DateTime value, int days) {
 
 String formatShortDate(DateTime date) {
   return '${date.month}月${date.day}日';
-}
-
-String formatRangeDate(DateTime date) {
-  return '${date.month}/${date.day}';
 }
 
 String normalizeTermLabel(String? label) {
@@ -80,19 +68,6 @@ DateTime? defaultTermStart(String? termLabel) {
   final anchor = DateTime(int.parse(match.group(2)!), 3, 1, 12);
   final offset = (DateTime.monday + 7 - anchor.weekday) % 7;
   return addDays(anchor, offset);
-}
-
-DateTime? resolveTermStart(String? week1Start, String? termLabel) {
-  if (week1Start != null && week1Start.isNotEmpty) {
-    final parts = week1Start.split('-');
-    return DateTime(
-      int.parse(parts[0]),
-      int.parse(parts[1]),
-      int.parse(parts[2]),
-      12,
-    );
-  }
-  return defaultTermStart(termLabel);
 }
 
 int? academicWeek(DateTime date, DateTime? termStart) {

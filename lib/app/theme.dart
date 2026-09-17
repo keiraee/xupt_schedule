@@ -27,9 +27,6 @@ class AppTheme {
   static const tagWeekBg = Color(0xFFF4ECEB);
   static const tagWeek = Color(0xFF6D4540);
 
-  // 兼容旧引用
-  static const accentSoft = soft;
-
   static ThemeData light() {
     final base = ThemeData(
       useMaterial3: true,

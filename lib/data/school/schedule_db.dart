@@ -218,9 +218,4 @@ class ScheduleDb {
     await db.delete('flags', where: 'key = ?', whereArgs: ['force_refresh']);
     return (rows.first['value'] as int? ?? 0) != 0;
   }
-
-  Future<void> close() async {
-    await _db?.close();
-    _db = null;
-  }
 }
