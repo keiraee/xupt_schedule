@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../app/theme.dart';
-import '../../data/school/school_client.dart';
 import 'schedule_controller.dart';
 import 'widgets/unscheduled_list.dart';
 import 'widgets/week_timetable.dart';
@@ -26,7 +25,6 @@ class SchedulePage extends StatelessWidget {
           final weekHeading = controller.weekHeading;
           final weekRange = controller.weekRangeLabel;
           final weekStatus = controller.weekStatus;
-          final termCode = controller.selectedTermCode;
           final weekOptions = controller.weekOptions;
           final maxWeek = controller.maxWeek;
           final dayDates = controller.weekdayDates;
@@ -41,33 +39,6 @@ class SchedulePage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (scheduleData != null && scheduleData.terms.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
-                      children: [
-                        const Spacer(),
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 176, minWidth: 128),
-                          child: _PaperSelect(
-                            text: _labelForTerm(scheduleData.terms, termCode),
-                            onTap: () async {
-                              final next = await showPaperOptions<String>(
-                                context: context,
-                                title: '选择学期',
-                                selected: termCode,
-                                options: [
-                                  for (final term in scheduleData.terms)
-                                    PaperOption(value: term.code, label: term.label),
-                                ],
-                              );
-                              if (next != null) controller.changeTerm(next);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 _WeekNav(
                   weekHeading: weekHeading,
                   weekRangeLabel: weekRange,
@@ -261,13 +232,6 @@ class _BodyPlaceholder extends StatelessWidget {
       child: Center(child: CircularProgressIndicator()),
     );
   }
-}
-
-String _labelForTerm(List<TermOption> terms, String selectedCode) {
-  for (final term in terms) {
-    if (term.code == selectedCode) return term.label;
-  }
-  return '学期';
 }
 
 class PaperOption<T> {

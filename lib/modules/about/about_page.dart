@@ -4,7 +4,10 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/theme.dart';
 import '../../core/constants.dart';
+import '../../data/school/school_client.dart';
 import '../auth/auth_controller.dart';
+import '../schedule/schedule_controller.dart';
+import '../schedule/schedule_page.dart';
 import 'update_service.dart';
 
 class AboutPage extends StatefulWidget {
@@ -58,6 +61,8 @@ class _AboutPageState extends State<AboutPage> {
             _buildHeader(),
             const SizedBox(height: 20),
             _buildInfoCard(),
+            const SizedBox(height: 16),
+            _buildTermCard(),
             const SizedBox(height: 16),
             _buildUpdateCard(),
             const SizedBox(height: 16),
@@ -131,6 +136,79 @@ class _AboutPageState extends State<AboutPage> {
         ),
       ],
     );
+  }
+
+  Widget _buildTermCard() {
+    final controller = Get.find<ScheduleController>();
+    return Obx(() {
+      final terms = controller.data.value?.terms ?? const <TermOption>[];
+      if (terms.isEmpty) return const SizedBox.shrink();
+      final selected = controller.selectedTermCode;
+      var label = '学期';
+      for (final t in terms) {
+        if (t.code == selected) {
+          label = t.label;
+          break;
+        }
+      }
+      return _Card(
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.calendar_month_outlined, size: 18, color: AppTheme.muted),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text('当前学期', style: TextStyle(fontSize: 14, color: AppTheme.ink)),
+              ),
+              const SizedBox(width: 10),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 176, minWidth: 128),
+                child: Material(
+                  color: AppTheme.soft,
+                  borderRadius: BorderRadius.circular(999),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(999),
+                    onTap: () async {
+                      final next = await showPaperOptions<String>(
+                        context: context,
+                        title: '选择学期',
+                        selected: selected,
+                        options: [
+                          for (final t in terms)
+                            PaperOption(value: t.code, label: t.label),
+                        ],
+                      );
+                      if (next != null) controller.changeTerm(next);
+                    },
+                    child: Container(
+                      height: 36,
+                      padding: const EdgeInsets.fromLTRB(12, 0, 8, 0),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: AppTheme.line),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.ink),
+                            ),
+                          ),
+                          const Icon(Icons.expand_more, size: 18, color: AppTheme.muted),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    });
   }
 
   Widget _buildUpdateCard() {
