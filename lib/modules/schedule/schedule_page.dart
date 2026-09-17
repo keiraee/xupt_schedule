@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../app/theme.dart';
-import '../../core/schedule_utils.dart';
 import '../../data/school/school_client.dart';
 import 'schedule_controller.dart';
 import 'widgets/unscheduled_list.dart';
@@ -18,37 +17,6 @@ class SchedulePage extends StatelessWidget {
     final controller = Get.find<ScheduleController>();
     return Scaffold(
       backgroundColor: const Color(0xFFF6F5F1),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFF6F5F1),
-        titleSpacing: 16,
-        title: Obx(() => Text(controller.pageTitle)),
-        actions: [
-          IconButton(
-            tooltip: '退出登录',
-            onPressed: () async {
-              final ok = await showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('退出登录'),
-                  content: const Text('确定退出当前账号吗？'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('取消'),
-                    ),
-                    FilledButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text('退出'),
-                    ),
-                  ],
-                ),
-              );
-              if (ok == true) await controller.logout();
-            },
-            icon: const Icon(Icons.logout),
-          ),
-        ],
-      ),
       body: SafeArea(
         child: Obx(() {
           final scheduleData = controller.data.value;
@@ -58,8 +26,6 @@ class SchedulePage extends StatelessWidget {
           final weekHeading = controller.weekHeading;
           final weekRange = controller.weekRangeLabel;
           final weekStatus = controller.weekStatus;
-          final studentName = controller.studentName;
-          final studentId = controller.studentId;
           final termCode = controller.selectedTermCode;
           final weekOptions = controller.weekOptions;
           final maxWeek = controller.maxWeek;
@@ -75,14 +41,33 @@ class SchedulePage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _TopBar(
-                  name: studentName,
-                  studentId: studentId,
-                  terms: scheduleData?.terms ?? const [],
-                  selectedCode: termCode,
-                  onChangeTerm: controller.changeTerm,
-                ),
-                const SizedBox(height: 8),
+                if (scheduleData != null && scheduleData.terms.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        const Spacer(),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 176, minWidth: 128),
+                          child: _PaperSelect(
+                            text: _labelForTerm(scheduleData.terms, termCode),
+                            onTap: () async {
+                              final next = await showPaperOptions<String>(
+                                context: context,
+                                title: '选择学期',
+                                selected: termCode,
+                                options: [
+                                  for (final term in scheduleData.terms)
+                                    PaperOption(value: term.code, label: term.label),
+                                ],
+                              );
+                              if (next != null) controller.changeTerm(next);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 _WeekNav(
                   weekHeading: weekHeading,
                   weekRangeLabel: weekRange,
@@ -133,61 +118,6 @@ class SchedulePage extends StatelessWidget {
           );
         }),
       ),
-    );
-  }
-}
-
-class _TopBar extends StatelessWidget {
-  const _TopBar({
-    required this.name,
-    required this.studentId,
-    required this.terms,
-    required this.selectedCode,
-    required this.onChangeTerm,
-  });
-
-  final String name;
-  final String studentId;
-  final List<TermOption> terms;
-  final String selectedCode;
-  final ValueChanged<String> onChangeTerm;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            name.isEmpty ? maskStudentId(studentId) : name,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: AppTheme.ink,
-            ),
-          ),
-        ),
-        if (terms.isNotEmpty) ...[
-          const SizedBox(width: 10),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 176, minWidth: 128),
-            child: _PaperSelect(
-              text: _labelForTerm(terms, selectedCode),
-              onTap: () async {
-                final next = await showPaperOptions<String>(
-                  context: context,
-                  title: '选择学期',
-                  selected: selectedCode,
-                  options: [
-                    for (final term in terms)
-                      PaperOption(value: term.code, label: term.label),
-                  ],
-                );
-                if (next != null) onChangeTerm(next);
-              },
-            ),
-          ),
-        ],
-      ],
     );
   }
 }

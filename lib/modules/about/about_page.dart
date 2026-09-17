@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/theme.dart';
 import '../../core/constants.dart';
+import '../auth/auth_controller.dart';
 import 'update_service.dart';
 
 class AboutPage extends StatefulWidget {
@@ -65,6 +67,15 @@ class _AboutPageState extends State<AboutPage> {
               '作者：keiraee',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 12, color: AppTheme.faint),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _confirmLogout(context),
+                icon: const Icon(Icons.logout, size: 18),
+                label: const Text('退出登录'),
+              ),
             ),
           ],
         ),
@@ -191,6 +202,31 @@ class _AboutPageState extends State<AboutPage> {
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Future<void> _confirmLogout(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('退出登录'),
+        content: const Text('确定退出当前账号吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('退出'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      final session = Get.find<SchoolSession>();
+      await session.logout();
+      Get.offAllNamed('/login');
     }
   }
 }
