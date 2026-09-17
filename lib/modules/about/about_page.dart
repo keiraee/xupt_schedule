@@ -60,6 +60,12 @@ class _AboutPageState extends State<AboutPage> {
             _buildUpdateCard(),
             const SizedBox(height: 16),
             _buildLinkCard(),
+            const SizedBox(height: 24),
+            const Text(
+              '作者：keiraee',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: AppTheme.faint),
+            ),
           ],
         ),
       ),
@@ -97,10 +103,6 @@ class _AboutPageState extends State<AboutPage> {
     return _Card(
       children: [
         _infoRow(Icons.school_outlined, '西安邮电大学课表客户端'),
-        const SizedBox(height: 10),
-        _infoRow(Icons.link_off, '直连学校统一认证，无需后端服务'),
-        const SizedBox(height: 10),
-        _infoRow(Icons.code, 'Flutter / Dart · GetX'),
       ],
     );
   }
