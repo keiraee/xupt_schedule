@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:xupt_schedule_app/core/schedule_utils.dart';
 import 'package:xupt_schedule_app/data/school/schedule_parser.dart';
 
 const _html = '''
@@ -83,5 +84,11 @@ void main() {
     expect(ai.location, isEmpty);
     expect(ai.weekdayIndex, 3);
     expect(ai.period, '1-2');
+
+    // 中午2-6 覆盖 中午2、5、6 共 3 个节次行
+    final ethicRange = periodRange('中午2-6');
+    expect(ethicRange.startKey, '中午2');
+    expect(ethicRange.endKey, '6');
+    expect(ethicRange.rowspan, 3);
   });
 }

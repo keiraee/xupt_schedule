@@ -3,22 +3,6 @@ import 'package:html/dom.dart' as dom;
 
 import 'school_models.dart';
 
-const _defaultTimes = <String, String>{
-  '1': '08:00-08:50',
-  '2': '08:55-09:45',
-  '3': '10:15-11:05',
-  '4': '11:10-12:00',
-  '中午1': '12:05-12:55',
-  '中午2': '13:35-14:25',
-  '5': '14:30-15:20',
-  '6': '15:25-16:15',
-  '7': '16:35-17:25',
-  '8': '17:30-18:20',
-  '9': '19:00-19:50',
-  '10': '19:55-20:45',
-  '11': '20:50-21:40',
-};
-
 final _scheduleRe = RegExp(
   r'(\d+)-(\d+)周\s*:\s*(连续周|单周|双周)\s+星期([一二三四五六日])\s+(.+?)节',
 );
@@ -277,5 +261,3 @@ WebformsState extractWebformsState(String html) {
     termSelectName: page.termSelectName,
   );
 }
-
-Map<String, String> get defaultPeriodTimes => Map.unmodifiable(_defaultTimes);
