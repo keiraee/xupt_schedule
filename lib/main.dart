@@ -7,8 +7,8 @@ import 'core/constants.dart';
 import 'modules/auth/auth_binding.dart';
 import 'modules/auth/auth_controller.dart';
 import 'modules/auth/login_page.dart';
-import 'modules/schedule/schedule_binding.dart';
-import 'modules/schedule/schedule_page.dart';
+import 'modules/shell/shell_binding.dart';
+import 'modules/shell/shell_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -67,9 +67,9 @@ class _XuptScheduleAppState extends State<XuptScheduleApp> {
       navigatorKey: _navigatorKey,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
-      initialBinding: widget.startOnSchedule ? ScheduleBinding() : AuthBinding(),
+      initialBinding: widget.startOnSchedule ? ShellBinding() : AuthBinding(),
       initialRoute:
-          widget.startOnSchedule ? SchedulePage.routeName : LoginPage.routeName,
+          widget.startOnSchedule ? ShellPage.routeName : LoginPage.routeName,
       getPages: [
         GetPage(
           name: LoginPage.routeName,
@@ -77,9 +77,9 @@ class _XuptScheduleAppState extends State<XuptScheduleApp> {
           binding: AuthBinding(),
         ),
         GetPage(
-          name: SchedulePage.routeName,
-          page: () => const SchedulePage(),
-          binding: ScheduleBinding(),
+          name: ShellPage.routeName,
+          page: () => const ShellPage(),
+          binding: ShellBinding(),
         ),
       ],
     );

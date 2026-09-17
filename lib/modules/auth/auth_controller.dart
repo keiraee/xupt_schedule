@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/school/schedule_db.dart';
 import '../../data/school/school_client.dart';
-import '../schedule/schedule_page.dart';
+import '../shell/shell_page.dart';
 
 class AuthController extends GetxController {
   AuthController();
@@ -116,7 +116,7 @@ class AuthController extends GetxController {
     await ScheduleDb.instance.markForceRefresh();
     Get.find<SchoolSession>().adopt(client, result);
     inMfa.value = false;
-    Get.offAllNamed(SchedulePage.routeName);
+    Get.offAllNamed(ShellPage.routeName);
   }
 
   void _startCooldown(int seconds) {
