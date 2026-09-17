@@ -216,8 +216,10 @@ class ScheduleController extends GetxController {
   }
 
   Future<void> changeTerm(String code) async {
+    final previous = termCode.value;
     termCode.value = code;
     await sync(code);
+    if (isError.value) termCode.value = previous;
   }
 
   Future<void> logout() async {
