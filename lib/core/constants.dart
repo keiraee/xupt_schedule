@@ -2,7 +2,7 @@ class AppConstants {
   AppConstants._();
 
   static const appName = '西邮课表';
-  static const appVersion = '1.0.0';
+  static const appVersion = '1.1.0';
   static const badgeAsset = 'assets/images/xupt_badge.png';
   static const prefsDisclaimerAcked = 'disclaimer_acked';
 
